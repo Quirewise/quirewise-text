@@ -2,11 +2,13 @@
 project(QuirewiseText VERSION 0.1.0 LANGUAGES C)
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
+find_package(QuirewiseCharset CONFIG REQUIRED)
 file(GLOB_RECURSE QW_SOURCES CONFIGURE_DEPENDS src/*.c src/*.cpp)
 add_library(quirewise_text STATIC ${QW_SOURCES})
 add_library(Quirewise::Text ALIAS quirewise_text)
 set_target_properties(quirewise_text PROPERTIES EXPORT_NAME Text POSITION_INDEPENDENT_CODE ON)
 target_compile_features(quirewise_text PUBLIC c_std_11)
+target_link_libraries(quirewise_text PUBLIC Quirewise::Charset)
 target_compile_definitions(quirewise_text PRIVATE QUIREWISE_STANDALONE_PLAIN_TEXT_PARSER=1)
 target_include_directories(quirewise_text PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"

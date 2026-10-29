@@ -1,6 +1,7 @@
 #include "format_registry.h"
 #include "../../core/byte_utils.h"
 #include "txt_format.h"
+#include <quirewise/charset.h>
 
 #ifndef QUIREWISE_STANDALONE_PLAIN_TEXT_PARSER
 #include "../../backends/mupdf_backend.h"
@@ -14,13 +15,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#if defined(_WIN32)
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#else
-#include <iconv.h>
-#endif
-
 typedef struct QwHtmlBuffer {
     char *data;
     size_t size;
@@ -121,82 +115,33 @@ static int txt_is_valid_utf8(const uint8_t *data, size_t size)
 static int txt_decode_gbk(const uint8_t *data, size_t size,
                           uint8_t **out_data, size_t *out_size)
 {
+    QwCharsetStatus charset_status;
+    size_t converted_size = 0u;
+    uint8_t *utf8;
     *out_data = NULL;
     *out_size = 0;
     if (!size) return QW_STATUS_OK;
-#if defined(_WIN32)
-    {
-        int wide_count, utf8_count;
-        wchar_t *wide;
-        uint8_t *utf8;
-        if (size > (size_t)INT_MAX) return QW_STATUS_ERR_UNSUPPORTED;
-        wide_count = MultiByteToWideChar(936, 0, (const char *)data,
-                                         (int)size, NULL, 0);
-        if (wide_count <= 0 || (size_t)wide_count > SIZE_MAX / sizeof(wchar_t))
-            return QW_STATUS_ERR_DECODE;
-        wide = (wchar_t *)malloc((size_t)wide_count * sizeof(wchar_t));
-        if (!wide) return QW_STATUS_ERR_OUT_OF_MEMORY;
-        if (MultiByteToWideChar(936, 0, (const char *)data, (int)size,
-                                wide, wide_count) != wide_count) {
-            free(wide);
-            return QW_STATUS_ERR_DECODE;
-        }
-        utf8_count = WideCharToMultiByte(CP_UTF8, 0, wide, wide_count,
-                                         NULL, 0, NULL, NULL);
-        if (utf8_count <= 0) {
-            free(wide);
-            return QW_STATUS_ERR_DECODE;
-        }
-        utf8 = (uint8_t *)malloc((size_t)utf8_count);
-        if (!utf8) {
-            free(wide);
-            return QW_STATUS_ERR_OUT_OF_MEMORY;
-        }
-        if (WideCharToMultiByte(CP_UTF8, 0, wide, wide_count,
-                                (char *)utf8, utf8_count, NULL, NULL) != utf8_count) {
-            free(utf8);
-            free(wide);
-            return QW_STATUS_ERR_DECODE;
-        }
-        free(wide);
-        *out_data = utf8;
-        *out_size = (size_t)utf8_count;
-        return QW_STATUS_OK;
+    charset_status = qw_charset_convert("GBK", "UTF-8", data, size,
+                                        NULL, 0u, out_size);
+    if (charset_status == QW_CHARSET_ERR_UNSUPPORTED_ENCODING ||
+        charset_status == QW_CHARSET_ERR_RESOURCE_LIMIT ||
+        *out_size == SIZE_MAX) return QW_STATUS_ERR_UNSUPPORTED;
+    if (charset_status != QW_CHARSET_OK) return QW_STATUS_ERR_DECODE;
+    utf8 = (uint8_t *)malloc(*out_size ? *out_size : 1u);
+    if (!utf8) {
+        *out_size = 0u;
+        return QW_STATUS_ERR_OUT_OF_MEMORY;
     }
-#else
-    {
-        iconv_t converter = iconv_open("UTF-8", "GBK");
-        char *input_ptr, *output_ptr;
-        size_t input_left, output_left, output_capacity;
-        uint8_t *utf8;
-        size_t status;
-        if (converter == (iconv_t)-1) return QW_STATUS_ERR_UNSUPPORTED;
-        if (size > (SIZE_MAX - 16u) / 2u) {
-            iconv_close(converter);
-            return QW_STATUS_ERR_UNSUPPORTED;
-        }
-        output_capacity = size * 2u + 16u;
-        utf8 = (uint8_t *)malloc(output_capacity);
-        if (!utf8) {
-            iconv_close(converter);
-            return QW_STATUS_ERR_OUT_OF_MEMORY;
-        }
-        input_ptr = (char *)(uintptr_t)data;
-        output_ptr = (char *)utf8;
-        input_left = size;
-        output_left = output_capacity;
-        status = iconv(converter, &input_ptr, &input_left,
-                       &output_ptr, &output_left);
-        iconv_close(converter);
-        if (status == (size_t)-1 || input_left != 0u) {
-            free(utf8);
-            return QW_STATUS_ERR_DECODE;
-        }
-        *out_data = utf8;
-        *out_size = (size_t)(output_ptr - (char *)utf8);
-        return QW_STATUS_OK;
+    charset_status = qw_charset_convert("GBK", "UTF-8", data, size,
+                                        utf8, *out_size, &converted_size);
+    if (charset_status != QW_CHARSET_OK || converted_size != *out_size) {
+        free(utf8);
+        *out_size = 0u;
+        return charset_status == QW_CHARSET_ERR_RESOURCE_LIMIT
+            ? QW_STATUS_ERR_UNSUPPORTED : QW_STATUS_ERR_DECODE;
     }
-#endif
+    *out_data = utf8;
+    return QW_STATUS_OK;
 }
 
 static int text_to_html(QwHtmlBuffer *buffer, const uint8_t *data, size_t size)

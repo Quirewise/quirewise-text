@@ -2,19 +2,13 @@
 #include "../../core/text_buffer.h"
 #include "rtf_parser.h"
 #include "rtf_picture_parser.h"
+#include <quirewise/charset.h>
 
-#include <errno.h>
 #include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#if defined(_WIN32)
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#else
-#include <iconv.h>
-#endif
 enum {
 
     QW_RTF_HTML_LIMIT = 512 * 1024 * 1024,
@@ -175,100 +169,37 @@ static int rtf_decode_ansi(QwRtfParser *parser,
                            const unsigned char *data,
                            size_t size)
 {
+    char codepage_name[24];
+    size_t utf8_size = 0u;
+    size_t converted_size = 0u;
+    uint8_t *utf8;
+    QwCharsetStatus status;
+    int codepage;
     if (!size || parser->state.suppress || parser->state.hidden) return 1;
-#if defined(_WIN32)
-    {
-        int wide_count;
-        int utf8_count;
-        wchar_t *wide;
-        char *utf8;
-        UINT codepage = parser->state.codepage > 0
-            ? (UINT)parser->state.codepage : 1252u;
-        if (size > (size_t)INT_MAX) return 0;
-        wide_count = MultiByteToWideChar(codepage, 0, (const char *)data,
-                                         (int)size, NULL, 0);
-        if (wide_count <= 0 ||
-            (size_t)wide_count > SIZE_MAX / sizeof(wchar_t)) return 0;
-        wide = (wchar_t *)malloc((size_t)wide_count * sizeof(wchar_t));
-        if (!wide) return 0;
-        if (MultiByteToWideChar(codepage, 0, (const char *)data, (int)size,
-                                wide, wide_count) != wide_count) {
-            free(wide);
-            return 0;
-        }
-        utf8_count = WideCharToMultiByte(CP_UTF8, 0, wide, wide_count,
-                                         NULL, 0, NULL, NULL);
-        if (utf8_count <= 0) {
-            free(wide);
-            return 0;
-        }
-        utf8 = (char *)malloc((size_t)utf8_count);
-        if (!utf8) {
-            free(wide);
-            return 0;
-        }
-        if (WideCharToMultiByte(CP_UTF8, 0, wide, wide_count,
-                                utf8, utf8_count, NULL, NULL) != utf8_count) {
-            free(utf8);
-            free(wide);
-            return 0;
-        }
-        free(wide);
-        {
-            int ok = rtf_emit_utf8(parser, utf8, (size_t)utf8_count);
-            free(utf8);
-            return ok;
-        }
+    codepage = parser->state.codepage > 0 ? parser->state.codepage : 1252;
+    if (codepage == 10000) {
+        strcpy(codepage_name, "Macintosh");
+    } else if (codepage == 65001) {
+        strcpy(codepage_name, "UTF-8");
+    } else {
+        (void)snprintf(codepage_name, sizeof(codepage_name), "CP%d", codepage);
     }
-#else
-    {
-        char codepage_name[24];
-        iconv_t converter;
-        size_t capacity;
-        char *utf8;
-        char *input;
-        char *output;
-        size_t input_left = size;
-        size_t output_left;
-        size_t result;
-        if (parser->state.codepage == 10000) {
-            strcpy(codepage_name, "MACINTOSH");
-        } else if (parser->state.codepage == 65001) {
-            strcpy(codepage_name, "UTF-8");
-        } else {
-            snprintf(codepage_name, sizeof(codepage_name), "CP%d",
-                     parser->state.codepage > 0 ? parser->state.codepage : 1252);
-        }
-        converter = iconv_open("UTF-8", codepage_name);
-        if (converter == (iconv_t)-1) return 0;
-        if (size > (SIZE_MAX - 16u) / 4u) {
-            iconv_close(converter);
-            return 0;
-        }
-        capacity = size * 4u + 16u;
-        utf8 = (char *)malloc(capacity);
-        if (!utf8) {
-            iconv_close(converter);
-            return 0;
-        }
-        input = (char *)(uintptr_t)data;
-        output = utf8;
-        output_left = capacity;
-        errno = 0;
-        result = iconv(converter, &input, &input_left, &output, &output_left);
-        iconv_close(converter);
-        if (result == (size_t)-1 || input_left != 0u) {
-            free(utf8);
-            return 0;
-        }
-        result = (size_t)(output - utf8);
-        {
-            int ok = rtf_emit_utf8(parser, utf8, result);
-            free(utf8);
-            return ok;
-        }
+    status = qw_charset_convert(codepage_name, "UTF-8", data, size,
+                                NULL, 0u, &utf8_size);
+    if (status != QW_CHARSET_OK || utf8_size == SIZE_MAX) return 0;
+    utf8 = (uint8_t *)malloc(utf8_size ? utf8_size : 1u);
+    if (!utf8) return 0;
+    status = qw_charset_convert(codepage_name, "UTF-8", data, size,
+                                utf8, utf8_size, &converted_size);
+    if (status != QW_CHARSET_OK || converted_size != utf8_size) {
+        free(utf8);
+        return 0;
     }
-#endif
+    {
+        int ok = rtf_emit_utf8(parser, (const char *)utf8, utf8_size);
+        free(utf8);
+        return ok;
+    }
 }
 
 static int rtf_flush_ansi(QwRtfParser *parser, int final)
