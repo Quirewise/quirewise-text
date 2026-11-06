@@ -613,9 +613,9 @@ static int txt_convert_to_pdf(const void *data,
     rc = qw_txt_format_open_layout(data, size, QW_FORMAT_TXT, options,
                                    &document, report);
     if (rc == QW_STATUS_OK) {
-        rc = qw_mupdf_convert_html((const char *)document.html_utf8,
-                                   document.html_size, out_pdf, out_size,
-                                   report);
+        /* Layout is available, but PDF emission belongs to the internal
+         * Quirewise layout/PDF renderer, which this package does not provide. */
+        rc = QW_STATUS_ERR_UNSUPPORTED;
     }
     qw_layout_document_dispose(&document);
     return rc;
