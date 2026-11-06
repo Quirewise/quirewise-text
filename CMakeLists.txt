@@ -35,3 +35,12 @@ if(QUIREWISE_BUILD_SHARED AND WIN32)
         quirewise_text
         PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
+
+include(CTest)
+if(BUILD_TESTING)
+    add_executable(quirewise_text_fuzz_smoke tests/text_fuzz_smoke.c)
+    target_compile_features(quirewise_text_fuzz_smoke PRIVATE c_std_11)
+    target_link_libraries(quirewise_text_fuzz_smoke PRIVATE Quirewise::Text)
+    add_test(NAME quirewise_text_fuzz_smoke
+        COMMAND quirewise_text_fuzz_smoke)
+endif()
