@@ -4,7 +4,6 @@
 #include <quirewise/charset.h>
 
 #ifndef QUIREWISE_STANDALONE_PLAIN_TEXT_PARSER
-#include "../../backends/mupdf_backend.h"
 #include "../../pdf/pdf_internal.h"
 #include "quirewise/pml.h"
 #include "quirewise/text_archive.h"
