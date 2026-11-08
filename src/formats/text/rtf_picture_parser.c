@@ -1,6 +1,6 @@
 #include "rtf_picture_parser.h"
 
-#include "quirewise/convert.h"
+#include "quirewise/format.h"
 
 #include <stdint.h>
 #include <stdlib.h>
