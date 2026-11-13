@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.21)
 project(QuirewiseText VERSION 0.1.0 LANGUAGES C)
 option(QUIREWISE_BUILD_SHARED "Build Quirewise libraries as shared libraries" OFF)
 if(QUIREWISE_BUILD_SHARED)
@@ -44,5 +44,10 @@ if(BUILD_TESTING)
     target_link_libraries(quirewise_text_fuzz_smoke PRIVATE Quirewise::Text)
     add_test(NAME quirewise_text_fuzz_smoke
         COMMAND quirewise_text_fuzz_smoke)
+
+    add_executable(quirewise_text_markdown_render tests/markdown_render_test.c)
+    target_compile_features(quirewise_text_markdown_render PRIVATE c_std_11)
+    target_link_libraries(quirewise_text_markdown_render PRIVATE Quirewise::Text)
+    add_test(NAME quirewise_text_markdown COMMAND quirewise_text_markdown_render)
 endif()
 target_link_libraries(quirewise_text PUBLIC Quirewise::Runtime)
