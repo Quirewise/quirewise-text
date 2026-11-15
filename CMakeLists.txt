@@ -49,5 +49,11 @@ if(BUILD_TESTING)
     target_compile_features(quirewise_text_markdown_render PRIVATE c_std_11)
     target_link_libraries(quirewise_text_markdown_render PRIVATE Quirewise::Text)
     add_test(NAME quirewise_text_markdown COMMAND quirewise_text_markdown_render)
+
+add_executable(quirewise_text_html_to_markdown tests/html_to_markdown_test.c)
+target_compile_features(quirewise_text_html_to_markdown PRIVATE c_std_11)
+target_link_libraries(quirewise_text_html_to_markdown PRIVATE Quirewise::Text)
+add_test(NAME quirewise_text_html_to_markdown
+    COMMAND quirewise_text_html_to_markdown)
 endif()
 target_link_libraries(quirewise_text PUBLIC Quirewise::Runtime)

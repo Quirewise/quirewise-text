@@ -23,12 +23,16 @@ other Quirewise package.
   order marks and falling back to GBK/CP936 for legacy input.
 - Visits HTML tables and reports row/column/cell text through callbacks, for
   both single-table and multi-table documents.
+- Converts an HTML fragment back to the supported Markdown subset with
+  `qw_markdown_from_html`: headings, paragraphs, emphasis, links, lists,
+  blockquotes, inline and fenced code, simple tables, and images reduced to
+  their alt text. `qw_markdown_text_free` releases the result.
 
-**This package is a reader.** It has no writer for Markdown, HTML, EPUB, DOCX,
-HWPX, PDF or any other document target, and it does not convert Markdown back
-into a document model. Markup support is a bounded subset of each language, not
-a full CommonMark, RTF or roff implementation. The HTML table extractor is a
-strict grid parser, not a general HTML parser or sanitizer.
+**This package is a reader with one text writer.** The HTML-to-Markdown writer
+is the exception; there is no writer for EPUB, DOCX, HWPX, PDF or any other
+binary document target, and the HTML table extractor is a strict grid parser,
+not a general HTML parser or sanitizer. Markup support is a bounded subset of
+each language, not a full CommonMark, RTF or roff implementation.
 
 ## Requirements
 

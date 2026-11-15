@@ -25,12 +25,29 @@ typedef struct QwMarkdownDocument {
     size_t removed_images; /* Images are replaced by their alt text */
 } QwMarkdownDocument;
 
+typedef struct QwMarkdownText {
+    char *markdown; /* NUL-terminated UTF-8 Markdown, owned by this structure */
+    size_t markdown_size; /* Byte count excluding the trailing NUL */
+    size_t removed_images; /* Images are replaced by their alt text */
+} QwMarkdownText;
+
 int qw_markdown_abi_version(void);
 
 /* Render the supported Markdown subset to an HTML fragment. Input is borrowed. */
 QwMarkdownStatus qw_markdown_render_html(const void *data, size_t size,
                                         QwMarkdownDocument *out_document);
 void qw_markdown_document_free(QwMarkdownDocument *document);
+
+/*
+ * Convert an HTML fragment (headings, paragraphs, emphasis, links, lists,
+ * blockquotes, inline/fenced code, simple tables, images) to the supported
+ * Markdown subset. Script, style and head content is dropped; images become
+ * their alt text. Input is borrowed; the result is owned by the caller and
+ * released with qw_markdown_text_free().
+ */
+QwMarkdownStatus qw_markdown_from_html(const void *html, size_t size,
+                                       QwMarkdownText *out_document);
+void qw_markdown_text_free(QwMarkdownText *document);
 const char *qw_markdown_status_string(QwMarkdownStatus status);
 
 #ifdef __cplusplus
