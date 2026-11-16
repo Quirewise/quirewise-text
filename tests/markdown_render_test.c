@@ -85,6 +85,20 @@ int main(void)
         qw_markdown_document_free(&document);
     }
 
+    {
+        static const char fenced[] =
+            "```c\n"
+            "int value = 1;\n"
+            "```\n";
+        memset(&document, 0, sizeof(document));
+        CHECK(qw_markdown_render_html(fenced, sizeof(fenced) - 1u,
+                                      &document) == QW_MARKDOWN_OK);
+        CHECK(document.html != NULL);
+        CHECK(strstr(document.html, "class=\"language-c\"") != NULL);
+        CHECK(strstr(document.html, "int value = 1;") != NULL);
+        qw_markdown_document_free(&document);
+    }
+
     /* Empty input is rejected rather than silently accepted. */
     memset(&document, 0, sizeof(document));
     CHECK(qw_markdown_render_html("", 0u, &document) != QW_MARKDOWN_OK);

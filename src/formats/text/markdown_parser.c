@@ -19,6 +19,7 @@ typedef struct QwMarkdownLine {
 typedef struct QwMarkdownFence {
     uint8_t marker;
     size_t marker_count;
+    char info[64];
 } QwMarkdownFence;
 
 typedef struct QwMarkdownListMarker {
@@ -134,6 +135,25 @@ static int markdown_fence(const QwMarkdownLine *line,
     if (count < 3u) return 0;
     out_fence->marker = marker;
     out_fence->marker_count = count;
+    out_fence->info[0] = '\0';
+    offset += count;
+    while (offset < line->size &&
+           (line->data[offset] == ' ' || line->data[offset] == '\t'))
+        ++offset;
+    {
+        size_t written = 0u;
+        while (offset < line->size && line->data[offset] != ' ' &&
+               line->data[offset] != '\t' &&
+               written + 1u < sizeof(out_fence->info)) {
+            unsigned char ch = line->data[offset];
+            if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') ||
+                (ch >= '0' && ch <= '9') || ch == '-' || ch == '_' ||
+                ch == '+' || ch == '.')
+                out_fence->info[written++] = (char)ch;
+            ++offset;
+        }
+        out_fence->info[written] = '\0';
+    }
     return 1;
 }
 
@@ -674,7 +694,15 @@ static int markdown_render_fence(const uint8_t *data, size_t size,
                                  QwTextBuffer *html)
 {
     QwMarkdownLine line;
-    int rc = markdown_append_literal(html, "<pre><code>");
+    int rc;
+    if (fence->info[0]) {
+        char open[96];
+        (void)snprintf(open, sizeof(open),
+                       "<pre><code class=\"language-%s\">", fence->info);
+        rc = markdown_append_literal(html, open);
+    } else {
+        rc = markdown_append_literal(html, "<pre><code>");
+    }
     if (rc != QW_STATUS_OK) return rc;
     while (markdown_read_line(data, size, position, &line) > 0) {
         if (markdown_fence_close(&line, fence)) break;
