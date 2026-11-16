@@ -63,6 +63,11 @@ int main(void)
            "<th>D</th></tr><tr><td>1</td><td>2</td><td>3</td>"
            "<td>4</td></tr></table>",
            "| :---: | ---: | :--- | --- |");
+    expect("table style alignment",
+           "<table><tr><th style=\"text-align: center\">A</th>"
+           "<th style=\"text-align:right\">B</th></tr>"
+           "<tr><td>1</td><td>2</td></tr></table>",
+           "| :---: | ---: |");
     expect("entity", "<p>a &amp; b &lt;3</p>", "a & b <3");
     expect("image alt", "<p><img src=\"x.png\" alt=\"diagram\"></p>",
            "![diagram](x.png)");

@@ -223,6 +223,7 @@ typedef struct MdTag {
     char alt[512];
     char src[4096];
     char align[16];
+    char style[256];
     size_t href_size;
     size_t alt_size;
     size_t src_size;
@@ -364,6 +365,12 @@ static size_t md_parse_tag(const uint8_t *data, size_t size, size_t start,
                         index = md_skip_quoted(data, end, index, quote,
                                                tag->align,
                                                sizeof(tag->align));
+                    } else if (attr_size == 5u &&
+                               md_name_equal(data + attr_start, 5u,
+                                             "style")) {
+                        index = md_skip_quoted(data, end, index, quote,
+                                               tag->style,
+                                               sizeof(tag->style));
                     } else {
                         char discard[2];
                         index = md_skip_quoted(data, end, index, quote,
@@ -744,15 +751,40 @@ QwMarkdownStatus qw_markdown_from_html(const void *html, size_t size,
                 }
                 if (!table_header_done && table_cells < 64) {
                     int alignment = 0;
-                    if (tag.align[0]) {
-                        if (md_name_equal((const uint8_t *)tag.align,
-                                          strlen(tag.align), "center"))
+                    const char *align_text = tag.align;
+                    char style_align[16];
+                    style_align[0] = '\0';
+                    if (!align_text[0] && tag.style[0]) {
+                        const char *style_attr = strstr(tag.style,
+                                                        "text-align");
+                        if (style_attr) {
+                            const char *colon = strchr(style_attr, ':');
+                            if (colon) {
+                                size_t copy = 0u;
+                                ++colon;
+                                while (*colon == ' ' || *colon == '\t')
+                                    ++colon;
+                                while (colon[copy] && colon[copy] != ';' &&
+                                       colon[copy] != ' ' &&
+                                       colon[copy] != '\t' &&
+                                       copy + 1u < sizeof(style_align)) {
+                                    style_align[copy] = colon[copy];
+                                    ++copy;
+                                }
+                                style_align[copy] = '\0';
+                                align_text = style_align;
+                            }
+                        }
+                    }
+                    if (align_text[0]) {
+                        if (md_name_equal((const uint8_t *)align_text,
+                                          strlen(align_text), "center"))
                             alignment = 3;
-                        else if (md_name_equal((const uint8_t *)tag.align,
-                                               strlen(tag.align), "right"))
+                        else if (md_name_equal((const uint8_t *)align_text,
+                                               strlen(align_text), "right"))
                             alignment = 2;
-                        else if (md_name_equal((const uint8_t *)tag.align,
-                                               strlen(tag.align), "left"))
+                        else if (md_name_equal((const uint8_t *)align_text,
+                                               strlen(align_text), "left"))
                             alignment = 1;
                     }
                     table_align[table_cells] = alignment;
