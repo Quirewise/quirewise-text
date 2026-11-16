@@ -1073,10 +1073,34 @@ static int markdown_render_list(const uint8_t *data, size_t size,
     for (;;) {
         rc = markdown_append_literal(html, "<li>");
         if (rc != QW_STATUS_OK) return rc;
-        rc = markdown_inline(line.data + first.content_offset,
-                             line.size - first.content_offset,
-                             html, removed_images, 0u);
-        if (rc != QW_STATUS_OK) return rc;
+        {
+            size_t content_offset = first.content_offset;
+            int checkbox = 0;
+            int checked = 0;
+            if (content_offset + 3u < line.size &&
+                line.data[content_offset] == '[' &&
+                (line.data[content_offset + 1u] == ' ' ||
+                 line.data[content_offset + 1u] == 'x' ||
+                 line.data[content_offset + 1u] == 'X') &&
+                line.data[content_offset + 2u] == ']' &&
+                (line.data[content_offset + 3u] == ' ' ||
+                 line.data[content_offset + 3u] == '\t')) {
+                checkbox = 1;
+                checked = line.data[content_offset + 1u] != ' ';
+                content_offset += 4u;
+            }
+            if (checkbox) {
+                rc = markdown_append_literal(
+                    html, checked
+                              ? "<input type=\"checkbox\" disabled checked> "
+                              : "<input type=\"checkbox\" disabled> ");
+                if (rc != QW_STATUS_OK) return rc;
+            }
+            rc = markdown_inline(line.data + content_offset,
+                                 line.size - content_offset,
+                                 html, removed_images, 0u);
+            if (rc != QW_STATUS_OK) return rc;
+        }
         for (;;) {
             size_t before = *position;
             size_t next_position = before;
@@ -1091,10 +1115,34 @@ static int markdown_render_list(const uint8_t *data, size_t size,
                 *position = next_position;
                 rc = markdown_append_literal(html, "</li>\n<li>");
                 if (rc != QW_STATUS_OK) return rc;
-                rc = markdown_inline(line.data + marker.content_offset,
-                                     line.size - marker.content_offset,
-                                     html, removed_images, 0u);
-                if (rc != QW_STATUS_OK) return rc;
+                {
+                    size_t content_offset = marker.content_offset;
+                    int checkbox = 0;
+                    int checked = 0;
+                    if (content_offset + 3u < line.size &&
+                        line.data[content_offset] == '[' &&
+                        (line.data[content_offset + 1u] == ' ' ||
+                         line.data[content_offset + 1u] == 'x' ||
+                         line.data[content_offset + 1u] == 'X') &&
+                        line.data[content_offset + 2u] == ']' &&
+                        (line.data[content_offset + 3u] == ' ' ||
+                         line.data[content_offset + 3u] == '\t')) {
+                        checkbox = 1;
+                        checked = line.data[content_offset + 1u] != ' ';
+                        content_offset += 4u;
+                    }
+                    if (checkbox) {
+                        rc = markdown_append_literal(
+                            html, checked
+                                      ? "<input type=\"checkbox\" disabled checked> "
+                                      : "<input type=\"checkbox\" disabled> ");
+                        if (rc != QW_STATUS_OK) return rc;
+                    }
+                    rc = markdown_inline(line.data + content_offset,
+                                         line.size - content_offset,
+                                         html, removed_images, 0u);
+                    if (rc != QW_STATUS_OK) return rc;
+                }
                 continue;
             }
             {

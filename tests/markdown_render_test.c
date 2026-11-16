@@ -99,6 +99,21 @@ int main(void)
         qw_markdown_document_free(&document);
     }
 
+    {
+        static const char tasks[] =
+            "- [x] done\n"
+            "- [ ] todo\n";
+        memset(&document, 0, sizeof(document));
+        CHECK(qw_markdown_render_html(tasks, sizeof(tasks) - 1u, &document) ==
+              QW_MARKDOWN_OK);
+        CHECK(document.html != NULL);
+        CHECK(strstr(document.html,
+                     "<input type=\"checkbox\" disabled checked>") != NULL);
+        CHECK(strstr(document.html,
+                     "<input type=\"checkbox\" disabled> todo") != NULL);
+        qw_markdown_document_free(&document);
+    }
+
     /* Empty input is rejected rather than silently accepted. */
     memset(&document, 0, sizeof(document));
     CHECK(qw_markdown_render_html("", 0u, &document) != QW_MARKDOWN_OK);
