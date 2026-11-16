@@ -221,8 +221,10 @@ typedef struct MdTag {
     int self_closing;
     char href[1024];
     char alt[512];
+    char src[4096];
     size_t href_size;
     size_t alt_size;
+    size_t src_size;
 } MdTag;
 
 static int md_name_equal(const uint8_t *name, size_t size, const char *expected)
@@ -350,6 +352,11 @@ static size_t md_parse_tag(const uint8_t *data, size_t size, size_t start,
                         index = md_skip_quoted(data, end, index, quote,
                                                tag->alt,
                                                sizeof(tag->alt));
+                    } else if (attr_size == 3u &&
+                               md_name_equal(data + attr_start, 3u, "src")) {
+                        index = md_skip_quoted(data, end, index, quote,
+                                               tag->src,
+                                               sizeof(tag->src));
                     } else {
                         index = md_skip_quoted(data, end, index, quote,
                                                tag->alt /* unused */,
@@ -723,11 +730,22 @@ QwMarkdownStatus qw_markdown_from_html(const void *html, size_t size,
                     goto out_of_memory;
             } else if (md_name_equal((const uint8_t *)tag.name,
                                      strlen(tag.name), "img")) {
-                ++removed_images;
-                if (tag.alt[0]) {
-                    if (!md_escape_text(&out, (const uint8_t *)tag.alt,
-                                        strlen(tag.alt), 0, quote_depth))
+                if (tag.src[0]) {
+                    if (!md_append(&out, "![", 2u) ||
+                        (tag.alt[0] &&
+                         !md_escape_text(&out, (const uint8_t *)tag.alt,
+                                         strlen(tag.alt), 0, quote_depth)) ||
+                        !md_append(&out, "](", 2u) ||
+                        !md_append(&out, tag.src, strlen(tag.src)) ||
+                        !md_append(&out, ")", 1u))
                         goto out_of_memory;
+                } else {
+                    ++removed_images;
+                    if (tag.alt[0]) {
+                        if (!md_escape_text(&out, (const uint8_t *)tag.alt,
+                                            strlen(tag.alt), 0, quote_depth))
+                            goto out_of_memory;
+                    }
                 }
             }
         }
