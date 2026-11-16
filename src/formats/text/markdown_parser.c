@@ -649,6 +649,24 @@ static int markdown_inline(const uint8_t *data, size_t size,
                 continue;
             }
         }
+        if (data[i] == '~' && i + 1u < size && data[i + 1u] == '~' &&
+            depth < 16u) {
+            size_t close = i + 2u;
+            while (close + 1u < size &&
+                   !(data[close] == '~' && data[close + 1u] == '~'))
+                ++close;
+            if (close + 1u < size && close > i + 2u) {
+                int rc = markdown_append_literal(html, "<del>");
+                if (rc != QW_STATUS_OK) return rc;
+                rc = markdown_inline(data + i + 2u, close - i - 2u, html,
+                                     removed_images, depth + 1u);
+                if (rc != QW_STATUS_OK) return rc;
+                rc = markdown_append_literal(html, "</del>");
+                if (rc != QW_STATUS_OK) return rc;
+                i = close + 2u;
+                continue;
+            }
+        }
         if ((data[i] == '*' || data[i] == '_') && depth < 16u) {
             size_t width, close_at;
             const char *open;
@@ -704,9 +722,9 @@ static int markdown_inline(const uint8_t *data, size_t size,
             while (i < size && data[i] != '\\' && data[i] != '!' &&
                    data[i] != '[' && data[i] != (uint8_t)0x60u &&
                    data[i] != '*' && data[i] != '_' && data[i] != '&' &&
-                   data[i] != '<' && data[i] != '>' && data[i] != '"' &&
-                   data[i] != '\'' && data[i] != '\n' && data[i] != '\r' &&
-                   data[i] != ' ' && data[i] != '\t')
+                   data[i] != '~' && data[i] != '<' && data[i] != '>' &&
+                   data[i] != '"' && data[i] != '\'' && data[i] != '\n' &&
+                   data[i] != '\r' && data[i] != ' ' && data[i] != '\t')
                 ++i;
             {
                 int rc = markdown_escape_html(html, data + start,
