@@ -751,6 +751,17 @@ static int markdown_line_has_pipe(const QwMarkdownLine *line)
     return 0;
 }
 
+static int md_table_pipe_escaped(const uint8_t *data, size_t index,
+                                 size_t start)
+{
+    size_t slashes = 0u;
+    while (index > start && data[index - 1u] == '\\') {
+        ++slashes;
+        --index;
+    }
+    return (slashes & 1u) != 0u;
+}
+
 static size_t md_table_split(const QwMarkdownLine *line, MdTableCell *cells,
                              size_t capacity)
 {
@@ -762,12 +773,17 @@ static size_t md_table_split(const QwMarkdownLine *line, MdTableCell *cells,
                            line->data[end - 1u] == '\t'))
         --end;
     if (start < end && line->data[start] == '|') ++start;
-    if (end > start && line->data[end - 1u] == '|') --end;
+    if (end > start && line->data[end - 1u] == '|' &&
+        !md_table_pipe_escaped(line->data, end - 1u, start))
+        --end;
     index = start;
     while (index <= end) {
         size_t cell_start = index;
         size_t cell_end;
-        while (index < end && line->data[index] != '|') ++index;
+        while (index < end &&
+               (line->data[index] != '|' ||
+                md_table_pipe_escaped(line->data, index, cell_start)))
+            ++index;
         cell_end = index;
         while (cell_start < cell_end &&
                (line->data[cell_start] == ' ' || line->data[cell_start] == '\t'))

@@ -55,6 +55,20 @@ int main(void)
         qw_markdown_document_free(&document);
     }
 
+    {
+        static const char escaped[] =
+            "| A | B |\n"
+            "| --- | --- |\n"
+            "| a \\| b | c |\n";
+        memset(&document, 0, sizeof(document));
+        CHECK(qw_markdown_render_html(escaped, sizeof(escaped) - 1u,
+                                      &document) == QW_MARKDOWN_OK);
+        CHECK(document.html != NULL);
+        CHECK(strstr(document.html, "a | b") != NULL);
+        CHECK(strstr(document.html, "<td>c</td>") != NULL);
+        qw_markdown_document_free(&document);
+    }
+
     /* Empty input is rejected rather than silently accepted. */
     memset(&document, 0, sizeof(document));
     CHECK(qw_markdown_render_html("", 0u, &document) != QW_MARKDOWN_OK);
