@@ -358,9 +358,9 @@ static size_t md_parse_tag(const uint8_t *data, size_t size, size_t start,
                                                tag->src,
                                                sizeof(tag->src));
                     } else {
+                        char discard[2];
                         index = md_skip_quoted(data, end, index, quote,
-                                               tag->alt /* unused */,
-                                               1u);
+                                               discard, sizeof(discard));
                     }
                 } else {
                     while (index < end && data[index] != ' ' &&

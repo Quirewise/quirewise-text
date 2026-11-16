@@ -59,7 +59,12 @@ int main(void)
            "| a | b |");
     expect("entity", "<p>a &amp; b &lt;3</p>", "a & b <3");
     expect("image alt", "<p><img src=\"x.png\" alt=\"diagram\"></p>",
-           "diagram");
+           "![diagram](x.png)");
+    expect("image data", "<p><img alt=\"shot\" src=\"data:image/png;base64,AA\"></p>",
+           "![shot](data:image/png;base64,AA)");
+    expect("image with width", "<p><img alt=\"diagram\" width=\"64\" src=\"x.png\"></p>",
+           "![diagram](x.png)");
+    expect("image no src", "<p><img alt=\"orphan\"></p>", "orphan");
     expect("script skipped", "<p>keep</p><script>drop()</script>",
            "keep");
 
