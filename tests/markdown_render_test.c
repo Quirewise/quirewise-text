@@ -38,6 +38,23 @@ int main(void)
     CHECK(strstr(document.html, "<li>") != NULL);
     qw_markdown_document_free(&document);
 
+    {
+        static const char table[] =
+            "| Left | Center | Right |\n"
+            "| :--- | :---: | ---: |\n"
+            "| a | b | c |\n";
+        memset(&document, 0, sizeof(document));
+        CHECK(qw_markdown_render_html(table, sizeof(table) - 1u, &document) ==
+              QW_MARKDOWN_OK);
+        CHECK(document.html != NULL);
+        CHECK(strstr(document.html, "<table>") != NULL);
+        CHECK(strstr(document.html, "<th align=\"left\">") != NULL);
+        CHECK(strstr(document.html, "<th align=\"center\">") != NULL);
+        CHECK(strstr(document.html, "<th align=\"right\">") != NULL);
+        CHECK(strstr(document.html, "<td align=\"center\">") != NULL);
+        qw_markdown_document_free(&document);
+    }
+
     /* Empty input is rejected rather than silently accepted. */
     memset(&document, 0, sizeof(document));
     CHECK(qw_markdown_render_html("", 0u, &document) != QW_MARKDOWN_OK);

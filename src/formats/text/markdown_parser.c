@@ -727,6 +727,206 @@ static int markdown_render_heading(const QwMarkdownLine *line,
     }
 }
 
+#define MD_TABLE_MAX_COLUMNS 64u
+
+typedef struct MdTableCell {
+    const uint8_t *data;
+    size_t size;
+} MdTableCell;
+
+static size_t md_table_trim_left(const uint8_t *data, size_t size)
+{
+    size_t offset = 0u;
+    while (offset < size && (data[offset] == ' ' || data[offset] == '\t'))
+        ++offset;
+    return offset;
+}
+
+static int markdown_line_has_pipe(const QwMarkdownLine *line)
+{
+    size_t index;
+    for (index = 0u; index < line->size; ++index) {
+        if (line->data[index] == '|') return 1;
+    }
+    return 0;
+}
+
+static size_t md_table_split(const QwMarkdownLine *line, MdTableCell *cells,
+                             size_t capacity)
+{
+    size_t start = md_table_trim_left(line->data, line->size);
+    size_t end = line->size;
+    size_t count = 0u;
+    size_t index;
+    while (end > start && (line->data[end - 1u] == ' ' ||
+                           line->data[end - 1u] == '\t'))
+        --end;
+    if (start < end && line->data[start] == '|') ++start;
+    if (end > start && line->data[end - 1u] == '|') --end;
+    index = start;
+    while (index <= end) {
+        size_t cell_start = index;
+        size_t cell_end;
+        while (index < end && line->data[index] != '|') ++index;
+        cell_end = index;
+        while (cell_start < cell_end &&
+               (line->data[cell_start] == ' ' || line->data[cell_start] == '\t'))
+            ++cell_start;
+        while (cell_end > cell_start &&
+               (line->data[cell_end - 1u] == ' ' ||
+                line->data[cell_end - 1u] == '\t'))
+            --cell_end;
+        if (count < capacity) {
+            cells[count].data = line->data + cell_start;
+            cells[count].size = cell_end - cell_start;
+            ++count;
+        }
+        if (index >= end) break;
+        ++index;
+    }
+    return count;
+}
+
+static int md_table_delimiter(const QwMarkdownLine *line,
+                              unsigned char *alignments, size_t capacity,
+                              size_t *out_columns)
+{
+    MdTableCell cells[MD_TABLE_MAX_COLUMNS];
+    size_t count;
+    size_t index;
+    size_t start = md_table_trim_left(line->data, line->size);
+    if (start < line->size && line->data[start] != '|' &&
+        line->data[start] != ':' && line->data[start] != '-')
+        return 0;
+    count = md_table_split(line, cells, capacity);
+    if (!count) return 0;
+    for (index = 0u; index < count; ++index) {
+        const uint8_t *cell = cells[index].data;
+        size_t size = cells[index].size;
+        int left = 0;
+        int right = 0;
+        size_t dashes = 0u;
+        size_t cursor;
+        if (size && cell[0] == ':') { left = 1; ++cell; --size; }
+        if (size && cell[size - 1u] == ':') { right = 1; --size; }
+        for (cursor = 0u; cursor < size; ++cursor) {
+            if (cell[cursor] == '-') ++dashes;
+            else return 0;
+        }
+        if (!dashes) return 0;
+        alignments[index] = left && right ? 3u : left ? 1u : right ? 2u : 0u;
+    }
+    *out_columns = count;
+    return 1;
+}
+
+static int markdown_table_delimiter_ahead(const uint8_t *data, size_t size,
+                                          size_t position)
+{
+    QwMarkdownLine delimiter;
+    unsigned char alignments[MD_TABLE_MAX_COLUMNS];
+    size_t columns = 0u;
+    if (markdown_read_line(data, size, &position, &delimiter) <= 0) return 0;
+    memset(alignments, 0, sizeof(alignments));
+    return md_table_delimiter(&delimiter, alignments, MD_TABLE_MAX_COLUMNS,
+                              &columns) &&
+           columns > 0u;
+}
+
+static int md_render_table_cell(QwTextBuffer *html, const MdTableCell *cell,
+                                unsigned char alignment, int header,
+                                size_t *removed_images)
+{
+    const char *tag = header ? "th" : "td";
+    int rc;
+    char open[48];
+    if (alignment == 3u)
+        rc = markdown_append_literal(html, header ? "<th align=\"center\">"
+                                                  : "<td align=\"center\">");
+    else if (alignment == 2u)
+        rc = markdown_append_literal(html, header ? "<th align=\"right\">"
+                                                  : "<td align=\"right\">");
+    else if (alignment == 1u)
+        rc = markdown_append_literal(html, header ? "<th align=\"left\">"
+                                                  : "<td align=\"left\">");
+    else {
+        (void)snprintf(open, sizeof(open), "<%s>", tag);
+        rc = markdown_append_literal(html, open);
+    }
+    if (rc != QW_STATUS_OK) return rc;
+    rc = markdown_inline(cell->data, cell->size, html, removed_images, 0u);
+    if (rc != QW_STATUS_OK) return rc;
+    rc = markdown_append_literal(html, header ? "</th>" : "</td>");
+    return rc;
+}
+
+static int markdown_render_table(const uint8_t *data, size_t size,
+                                 size_t *position,
+                                 const QwMarkdownLine *header,
+                                 QwTextBuffer *html,
+                                 size_t *removed_images)
+{
+    MdTableCell header_cells[MD_TABLE_MAX_COLUMNS];
+    unsigned char alignments[MD_TABLE_MAX_COLUMNS];
+    size_t header_count;
+    size_t delimiter_count = 0u;
+    size_t next_position = *position;
+    QwMarkdownLine delimiter;
+    int rc;
+    size_t column;
+    header_count = md_table_split(header, header_cells,
+                                  MD_TABLE_MAX_COLUMNS);
+    if (!header_count) return QW_STATUS_ERR_FORMAT;
+    if (markdown_read_line(data, size, &next_position, &delimiter) <= 0)
+        return QW_STATUS_ERR_FORMAT;
+    memset(alignments, 0, sizeof(alignments));
+    if (!md_table_delimiter(&delimiter, alignments, MD_TABLE_MAX_COLUMNS,
+                            &delimiter_count) ||
+        delimiter_count != header_count)
+        return QW_STATUS_ERR_FORMAT;
+    *position = next_position;
+    rc = markdown_append_literal(html, "<table>\n<thead>\n<tr>");
+    if (rc != QW_STATUS_OK) return rc;
+    for (column = 0u; column < header_count; ++column) {
+        rc = md_render_table_cell(html, &header_cells[column],
+                                  alignments[column], 1, removed_images);
+        if (rc != QW_STATUS_OK) return rc;
+    }
+    rc = markdown_append_literal(html, "</tr>\n</thead>\n<tbody>\n");
+    if (rc != QW_STATUS_OK) return rc;
+    for (;;) {
+        size_t before = *position;
+        QwMarkdownLine row;
+        MdTableCell cells[MD_TABLE_MAX_COLUMNS];
+        size_t count;
+        int has_pipe = 0;
+        if (markdown_read_line(data, size, &next_position, &row) <= 0)
+            break;
+        for (column = 0u; column < row.size; ++column) {
+            if (row.data[column] == '|') { has_pipe = 1; break; }
+        }
+        if (!has_pipe || markdown_line_blank(&row)) {
+            *position = before;
+            break;
+        }
+        count = md_table_split(&row, cells, MD_TABLE_MAX_COLUMNS);
+        if (!count) { *position = before; break; }
+        rc = markdown_append_literal(html, "<tr>");
+        if (rc != QW_STATUS_OK) return rc;
+        for (column = 0u; column < header_count; ++column) {
+            MdTableCell empty = {(const uint8_t *)"", 0u};
+            rc = md_render_table_cell(
+                html, column < count ? &cells[column] : &empty,
+                alignments[column], 0, removed_images);
+            if (rc != QW_STATUS_OK) return rc;
+        }
+        rc = markdown_append_literal(html, "</tr>\n");
+        if (rc != QW_STATUS_OK) return rc;
+        *position = next_position;
+    }
+    return markdown_append_literal(html, "</tbody>\n</table>\n");
+}
+
 static int markdown_render_blocks(const uint8_t *data, size_t size,
                                   QwTextBuffer *html,
                                   size_t *removed_images,
@@ -891,6 +1091,15 @@ static int markdown_render_blocks(const uint8_t *data, size_t size,
                                          removed_images);
             if (rc != QW_STATUS_OK) return rc;
             continue;
+        }
+        if (markdown_line_has_pipe(&line)) {
+            size_t table_position = position;
+            if (markdown_table_delimiter_ahead(data, size, table_position)) {
+                rc = markdown_render_table(data, size, &position, &line, html,
+                                           removed_images);
+                if (rc != QW_STATUS_OK) return rc;
+                continue;
+            }
         }
         if (markdown_horizontal_rule(&line)) {
             rc = markdown_append_literal(html, "<hr />\n");
