@@ -551,6 +551,36 @@ static int markdown_inline(const uint8_t *data, size_t size,
             i += 2u;
             continue;
         }
+        if (data[i] == '<') {
+            size_t close = i + 1u;
+            while (close < size && data[close] != '>' &&
+                   data[close] != ' ' && data[close] != '\t' &&
+                   data[close] != '\n' && data[close] != '\r')
+                ++close;
+            if (close < size && data[close] == '>' && close > i + 3u) {
+                const uint8_t *target = data + i + 1u;
+                size_t target_size = close - i - 1u;
+                size_t colon;
+                int has_colon = 0;
+                for (colon = 0u; colon < target_size; ++colon) {
+                    if (target[colon] == ':') { has_colon = 1; break; }
+                }
+                if (has_colon && markdown_url_safe(target, target_size)) {
+                    int rc = markdown_append_literal(html, "<a href=\"");
+                    if (rc != QW_STATUS_OK) return rc;
+                    rc = markdown_escape_html(html, target, target_size, 0);
+                    if (rc != QW_STATUS_OK) return rc;
+                    rc = markdown_append_literal(html, "\">");
+                    if (rc != QW_STATUS_OK) return rc;
+                    rc = markdown_escape_html(html, target, target_size, 0);
+                    if (rc != QW_STATUS_OK) return rc;
+                    rc = markdown_append_literal(html, "</a>");
+                    if (rc != QW_STATUS_OK) return rc;
+                    i = close + 1u;
+                    continue;
+                }
+            }
+        }
         if (data[i] == '!' || data[i] == '[') {
             int image = data[i] == '!';
             size_t label_start, label_size, url_start, url_size, token_end;
