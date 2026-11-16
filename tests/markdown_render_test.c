@@ -69,6 +69,22 @@ int main(void)
         qw_markdown_document_free(&document);
     }
 
+    {
+        static const char setext[] =
+            "Setext One\n"
+            "=====\n"
+            "\n"
+            "Setext Two\n"
+            "---\n";
+        memset(&document, 0, sizeof(document));
+        CHECK(qw_markdown_render_html(setext, sizeof(setext) - 1u, &document) ==
+              QW_MARKDOWN_OK);
+        CHECK(document.html != NULL);
+        CHECK(strstr(document.html, "<h1>Setext One</h1>") != NULL);
+        CHECK(strstr(document.html, "<h2>Setext Two</h2>") != NULL);
+        qw_markdown_document_free(&document);
+    }
+
     /* Empty input is rejected rather than silently accepted. */
     memset(&document, 0, sizeof(document));
     CHECK(qw_markdown_render_html("", 0u, &document) != QW_MARKDOWN_OK);

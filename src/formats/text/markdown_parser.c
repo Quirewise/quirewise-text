@@ -943,6 +943,29 @@ static int markdown_render_table(const uint8_t *data, size_t size,
     return markdown_append_literal(html, "</tbody>\n</table>\n");
 }
 
+static int markdown_setext_underline(const QwMarkdownLine *line,
+                                      unsigned *out_level)
+{
+    size_t offset = markdown_leading_spaces(line);
+    size_t end = line->size;
+    unsigned char marker;
+    size_t count = 0u;
+    while (end > offset && (line->data[end - 1u] == ' ' ||
+                            line->data[end - 1u] == '\t'))
+        --end;
+    if (offset >= end) return 0;
+    marker = line->data[offset];
+    if (marker != '=' && marker != '-') return 0;
+    while (offset < end) {
+        if (line->data[offset] != marker) return 0;
+        ++count;
+        ++offset;
+    }
+    if (count < 2u) return 0;
+    *out_level = marker == '=' ? 1u : 2u;
+    return 1;
+}
+
 static int markdown_render_blocks(const uint8_t *data, size_t size,
                                   QwTextBuffer *html,
                                   size_t *removed_images,
@@ -1166,6 +1189,29 @@ static int markdown_render_blocks(const uint8_t *data, size_t size,
                 }
                 rc = markdown_append_literal(html, "</code></pre>\n");
                 if (rc != QW_STATUS_OK) return rc;
+                continue;
+            }
+        }
+        {
+            size_t probe = position;
+            QwMarkdownLine underline;
+            unsigned setext_level = 0u;
+            if (markdown_read_line(data, size, &probe, &underline) > 0 &&
+                markdown_setext_underline(&underline, &setext_level)) {
+                char heading_open[8];
+                char heading_close[8];
+                (void)snprintf(heading_open, sizeof(heading_open), "<h%u>",
+                               setext_level);
+                (void)snprintf(heading_close, sizeof(heading_close),
+                               "</h%u>\n", setext_level);
+                rc = markdown_append_literal(html, heading_open);
+                if (rc == QW_STATUS_OK)
+                    rc = markdown_inline(line.data, line.size, html,
+                                         removed_images, 0u);
+                if (rc == QW_STATUS_OK)
+                    rc = markdown_append_literal(html, heading_close);
+                if (rc != QW_STATUS_OK) return rc;
+                position = probe;
                 continue;
             }
         }
