@@ -57,6 +57,12 @@ int main(void)
     expect("table", "<table><tr><th>a</th><th>b</th></tr>"
                     "<tr><td>1</td><td>2</td></tr></table>",
            "| a | b |");
+    expect("table alignment",
+           "<table><tr><th align=\"center\">A</th>"
+           "<th align=\"right\">B</th><th align=\"left\">C</th>"
+           "<th>D</th></tr><tr><td>1</td><td>2</td><td>3</td>"
+           "<td>4</td></tr></table>",
+           "| :---: | ---: | :--- | --- |");
     expect("entity", "<p>a &amp; b &lt;3</p>", "a & b <3");
     expect("image alt", "<p><img src=\"x.png\" alt=\"diagram\"></p>",
            "![diagram](x.png)");

@@ -222,6 +222,7 @@ typedef struct MdTag {
     char href[1024];
     char alt[512];
     char src[4096];
+    char align[16];
     size_t href_size;
     size_t alt_size;
     size_t src_size;
@@ -357,6 +358,12 @@ static size_t md_parse_tag(const uint8_t *data, size_t size, size_t start,
                         index = md_skip_quoted(data, end, index, quote,
                                                tag->src,
                                                sizeof(tag->src));
+                    } else if (attr_size == 5u &&
+                               md_name_equal(data + attr_start, 5u,
+                                             "align")) {
+                        index = md_skip_quoted(data, end, index, quote,
+                                               tag->align,
+                                               sizeof(tag->align));
                     } else {
                         char discard[2];
                         index = md_skip_quoted(data, end, index, quote,
@@ -493,6 +500,8 @@ QwMarkdownStatus qw_markdown_from_html(const void *html, size_t size,
     int table_header_done = 0;
     int table_cell_open = 0;
     int table_cells = 0;
+    int table_align[64];
+    int table_align_columns = 0;
     size_t removed_images = 0u;
 
     if (!out_document) return QW_MARKDOWN_ERR_INVALID_ARGUMENT;
@@ -612,7 +621,15 @@ QwMarkdownStatus qw_markdown_from_html(const void *html, size_t size,
                         int cell;
                         if (!md_byte(&out, '|')) goto out_of_memory;
                         for (cell = 0; cell < table_cells; ++cell) {
-                            if (!md_append(&out, " --- |", 6u))
+                            int alignment = cell < table_align_columns
+                                                ? table_align[cell] : 0;
+                            const char *separator =
+                                alignment == 3 ? " :---: |"
+                                : alignment == 2 ? " ---: |"
+                                : alignment == 1 ? " :--- |"
+                                                 : " --- |";
+                            if (!md_append(&out, separator,
+                                           strlen(separator)))
                                 goto out_of_memory;
                         }
                         if (!md_byte(&out, '\n')) goto out_of_memory;
@@ -707,6 +724,8 @@ QwMarkdownStatus qw_markdown_from_html(const void *html, size_t size,
                 if (!md_blank(&out)) goto out_of_memory;
                 table_open = 1;
                 table_header_done = 0;
+                table_align_columns = 0;
+                memset(table_align, 0, sizeof(table_align));
             } else if (md_name_equal((const uint8_t *)tag.name,
                                      strlen(tag.name), "tr")) {
                 if (!md_at_line_start(&out) && !md_newline(&out))
@@ -722,6 +741,23 @@ QwMarkdownStatus qw_markdown_from_html(const void *html, size_t size,
                 if (table_row_open && table_cells > 0) {
                     if (!md_append(&out, " | ", 3u))
                         goto out_of_memory;
+                }
+                if (!table_header_done && table_cells < 64) {
+                    int alignment = 0;
+                    if (tag.align[0]) {
+                        if (md_name_equal((const uint8_t *)tag.align,
+                                          strlen(tag.align), "center"))
+                            alignment = 3;
+                        else if (md_name_equal((const uint8_t *)tag.align,
+                                               strlen(tag.align), "right"))
+                            alignment = 2;
+                        else if (md_name_equal((const uint8_t *)tag.align,
+                                               strlen(tag.align), "left"))
+                            alignment = 1;
+                    }
+                    table_align[table_cells] = alignment;
+                    if (table_cells + 1 > table_align_columns)
+                        table_align_columns = table_cells + 1;
                 }
                 ++table_cells;
             } else if (md_name_equal((const uint8_t *)tag.name,
