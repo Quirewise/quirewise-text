@@ -606,9 +606,35 @@ static int markdown_inline(const uint8_t *data, size_t size,
                                     &title_start, &title_size, &token_end)) {
                 int safe = markdown_url_safe(data + url_start, url_size);
                 int rc;
-                if (image) {
-                    ++*removed_images;
-                } else if (safe) {
+                if (image && safe) {
+                    rc = markdown_append_literal(html, "<img src=\"");
+                    if (rc != QW_STATUS_OK) return rc;
+                    rc = markdown_escape_html(html, data + url_start,
+                                              url_size, 0);
+                    if (rc != QW_STATUS_OK) return rc;
+                    rc = markdown_append_literal(html, "\" alt=\"");
+                    if (rc != QW_STATUS_OK) return rc;
+                    rc = markdown_escape_html(html, data + label_start,
+                                              label_size, 0);
+                    if (rc != QW_STATUS_OK) return rc;
+                    rc = markdown_append_literal(html, "\"");
+                    if (rc != QW_STATUS_OK) return rc;
+                    if (has_title) {
+                        rc = markdown_append_literal(html, " title=\"");
+                        if (rc != QW_STATUS_OK) return rc;
+                        rc = markdown_escape_html(html, data + title_start,
+                                                  title_size, 0);
+                        if (rc != QW_STATUS_OK) return rc;
+                        rc = markdown_append_literal(html, "\"");
+                        if (rc != QW_STATUS_OK) return rc;
+                    }
+                    rc = markdown_append_literal(html, ">");
+                    if (rc != QW_STATUS_OK) return rc;
+                    i = token_end;
+                    continue;
+                }
+                if (image) ++*removed_images;
+                if (!image && safe) {
                     rc = markdown_append_literal(html, "<a href=\"");
                     if (rc != QW_STATUS_OK) return rc;
                     rc = markdown_escape_html(html, data + url_start,
