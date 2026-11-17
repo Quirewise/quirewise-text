@@ -79,6 +79,10 @@ int main(void)
     expect("highlight", "<p><mark>hot</mark></p>", "<mark>hot</mark>");
     expect("quote", "<p><q>short</q></p>", "<q>short</q>");
     expect("citation", "<p><cite>Book</cite></p>", "<cite>Book</cite>");
+    expect("figure caption",
+           "<figure><img src=\"x.png\" alt=\"diagram\">"
+           "<figcaption>A caption</figcaption></figure>",
+           "*A caption*");
     expect("entity", "<p>a &amp; b &lt;3</p>", "a & b <3");
     expect("image alt", "<p><img src=\"x.png\" alt=\"diagram\"></p>",
            "![diagram](x.png)");
