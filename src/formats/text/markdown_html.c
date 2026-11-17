@@ -610,6 +610,13 @@ QwMarkdownStatus qw_markdown_from_html(const void *html, size_t size,
                         link_href_size = 0u;
                     }
                 } else if (md_name_equal((const uint8_t *)tag.name,
+                                         strlen(tag.name), "del") ||
+                           md_name_equal((const uint8_t *)tag.name,
+                                         strlen(tag.name), "s") ||
+                           md_name_equal((const uint8_t *)tag.name,
+                                         strlen(tag.name), "strike")) {
+                    if (!md_append(&out, "~~", 2u)) goto out_of_memory;
+                } else if (md_name_equal((const uint8_t *)tag.name,
                                          strlen(tag.name), "sup") ||
                            md_name_equal((const uint8_t *)tag.name,
                                          strlen(tag.name), "sub")) {
@@ -733,6 +740,13 @@ QwMarkdownStatus qw_markdown_from_html(const void *html, size_t size,
                 memcpy(link_href, tag.href, link_href_size);
                 link_href[link_href_size] = '\0';
                 if (!md_byte(&out, '[')) goto out_of_memory;
+            } else if (md_name_equal((const uint8_t *)tag.name,
+                                     strlen(tag.name), "del") ||
+                       md_name_equal((const uint8_t *)tag.name,
+                                     strlen(tag.name), "s") ||
+                       md_name_equal((const uint8_t *)tag.name,
+                                     strlen(tag.name), "strike")) {
+                if (!md_append(&out, "~~", 2u)) goto out_of_memory;
             } else if (md_name_equal((const uint8_t *)tag.name,
                                      strlen(tag.name), "sup") ||
                        md_name_equal((const uint8_t *)tag.name,

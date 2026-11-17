@@ -73,6 +73,8 @@ int main(void)
            ": Detail");
     expect("superscript", "<p>x<sup>2</sup></p>", "<sup>2</sup>");
     expect("subscript", "<p>H<sub>2</sub>O</p>", "<sub>2</sub>");
+    expect("strikethrough", "<p><del>gone</del> and <s>old</s></p>",
+           "~~gone~~ and ~~old~~");
     expect("entity", "<p>a &amp; b &lt;3</p>", "a & b <3");
     expect("image alt", "<p><img src=\"x.png\" alt=\"diagram\"></p>",
            "![diagram](x.png)");
