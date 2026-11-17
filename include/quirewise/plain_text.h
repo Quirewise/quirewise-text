@@ -21,8 +21,10 @@ typedef enum QwPlainTextStatus {
 
 typedef struct QwPlainTextDocument QwPlainTextDocument;
 
+/*! Return 1 when the bytes look like plain text. */
 int qw_plain_text_probe(const void *data, size_t size);
 
+/*! Parse plain text into a document. */
 QwPlainTextStatus qw_plain_text_parse(const void *data, size_t size,
                                       QwPlainTextDocument **out_document);
 
@@ -30,6 +32,7 @@ QwPlainTextStatus qw_plain_text_parse(const void *data, size_t size,
 const uint8_t *qw_plain_text_document_html(
     const QwPlainTextDocument *document, size_t *out_size);
 
+/*! Release a document returned by the parser; NULL is accepted. */
 void qw_plain_text_document_free(QwPlainTextDocument *document);
 
 #ifdef __cplusplus

@@ -27,12 +27,15 @@ typedef struct QwAsciiDocDocument {
     int dropped_unsafe_links;
 } QwAsciiDocDocument;
 
+/*! Return the ABI version compiled into the installed text package. */
 int qw_asciidoc_abi_version(void);
 
 /* Parse UTF-8 input from the supported AsciiDoc subset into Markdown. */
 QwAsciiDocStatus qw_asciidoc_parse_markdown(const void *data, size_t size,
                                            QwAsciiDocDocument *out_document);
+/*! Release a document returned by the parser; NULL is accepted. */
 void qw_asciidoc_document_free(QwAsciiDocDocument *document);
+/*! Return a static human-readable name for a status code. */
 const char *qw_asciidoc_status_string(QwAsciiDocStatus status);
 
 #ifdef __cplusplus

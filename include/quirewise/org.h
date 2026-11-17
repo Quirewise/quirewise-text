@@ -24,12 +24,15 @@ typedef struct QwOrgDocument {
     int dropped_unsafe_links;
 } QwOrgDocument;
 
+/*! Return the ABI version compiled into the installed text package. */
 int qw_org_abi_version(void);
 
 /* Parse UTF-8 input from the supported Org mode subset into Markdown. */
 QwOrgStatus qw_org_parse_markdown(const void *data, size_t size,
                                   QwOrgDocument *out_document);
+/*! Release a document returned by the parser; NULL is accepted. */
 void qw_org_document_free(QwOrgDocument *document);
+/*! Return a static human-readable name for a status code. */
 const char *qw_org_status_string(QwOrgStatus status);
 
 #ifdef __cplusplus

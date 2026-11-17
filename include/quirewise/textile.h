@@ -24,12 +24,15 @@ typedef struct QwTextileDocument {
     int dropped_unsafe_links;
 } QwTextileDocument;
 
+/*! Return the ABI version compiled into the installed text package. */
 int qw_textile_abi_version(void);
 
 /* Parse the supported Textile subset into Markdown. The input is borrowed. */
 QwTextileStatus qw_textile_parse_markdown(const void *data, size_t size,
                                          QwTextileDocument *out_document);
+/*! Release a document returned by the parser; NULL is accepted. */
 void qw_textile_document_free(QwTextileDocument *document);
+/*! Return a static human-readable name for a status code. */
 const char *qw_textile_status_string(QwTextileStatus status);
 
 #ifdef __cplusplus

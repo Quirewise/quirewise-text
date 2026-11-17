@@ -25,12 +25,15 @@ typedef struct QwRstDocument {
     int dropped_unsafe_links;
 } QwRstDocument;
 
+/*! Return the ABI version compiled into the installed text package. */
 int qw_rst_abi_version(void);
 
 /* Parse UTF-8 input from the supported reStructuredText subset into Markdown. */
 QwRstStatus qw_rst_parse_markdown(const void *data, size_t size,
                                  QwRstDocument *out_document);
+/*! Release a document returned by the parser; NULL is accepted. */
 void qw_rst_document_free(QwRstDocument *document);
+/*! Return a static human-readable name for a status code. */
 const char *qw_rst_status_string(QwRstStatus status);
 
 #ifdef __cplusplus

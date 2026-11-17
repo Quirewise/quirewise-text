@@ -31,12 +31,15 @@ typedef struct QwLatexDocument {
     int dropped_unsafe_links;
 } QwLatexDocument;
 
+/*! Return the ABI version compiled into the installed text package. */
 int qw_latex_abi_version(void);
 
 /* Parse UTF-8 input from the supported LaTeX subset into Markdown. */
 QwLatexStatus qw_latex_parse_markdown(const void *data, size_t size,
                                      QwLatexDocument *out_document);
+/*! Release a document returned by the parser; NULL is accepted. */
 void qw_latex_document_free(QwLatexDocument *document);
+/*! Return a static human-readable name for a status code. */
 const char *qw_latex_status_string(QwLatexStatus status);
 
 #ifdef __cplusplus

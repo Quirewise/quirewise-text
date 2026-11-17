@@ -24,12 +24,15 @@ typedef struct QwManDocument {
     int skipped_unsupported_macros; /* Nonzero if unsupported roff macros were skipped */
 } QwManDocument;
 
+/*! Return the ABI version compiled into the installed text package. */
 int qw_man_abi_version(void);
 
 /* Parse a UTF-8 man/roff document from the supported macro subset to HTML. */
 QwManStatus qw_man_parse_html(const void *data, size_t size,
                               QwManDocument *out_document);
+/*! Release a document returned by the parser; NULL is accepted. */
 void qw_man_document_free(QwManDocument *document);
+/*! Return a static human-readable name for a status code. */
 const char *qw_man_status_string(QwManStatus status);
 
 #ifdef __cplusplus

@@ -31,11 +31,13 @@ typedef struct QwMarkdownText {
     size_t removed_images; /* Images are replaced by their alt text */
 } QwMarkdownText;
 
+/*! Return the ABI version compiled into the installed text package. */
 int qw_markdown_abi_version(void);
 
 /* Render the supported Markdown subset to an HTML fragment. Input is borrowed. */
 QwMarkdownStatus qw_markdown_render_html(const void *data, size_t size,
                                         QwMarkdownDocument *out_document);
+/*! Release a document returned by the parser; NULL is accepted. */
 void qw_markdown_document_free(QwMarkdownDocument *document);
 
 /*
@@ -47,7 +49,9 @@ void qw_markdown_document_free(QwMarkdownDocument *document);
  */
 QwMarkdownStatus qw_markdown_from_html(const void *html, size_t size,
                                        QwMarkdownText *out_document);
+/*! Release a Markdown result returned by qw_markdown_from_html(). */
 void qw_markdown_text_free(QwMarkdownText *document);
+/*! Return a static human-readable name for a status code. */
 const char *qw_markdown_status_string(QwMarkdownStatus status);
 
 #ifdef __cplusplus

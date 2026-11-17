@@ -24,12 +24,15 @@ typedef struct QwMediaWikiDocument {
     int dropped_unsafe_links;
 } QwMediaWikiDocument;
 
+/*! Return the ABI version compiled into the installed text package. */
 int qw_mediawiki_abi_version(void);
 
 /* Parse UTF-8 input from the supported MediaWiki subset into Markdown. */
 QwMediaWikiStatus qw_mediawiki_parse_markdown(const void *data, size_t size,
                                              QwMediaWikiDocument *out_document);
+/*! Release a document returned by the parser; NULL is accepted. */
 void qw_mediawiki_document_free(QwMediaWikiDocument *document);
+/*! Return a static human-readable name for a status code. */
 const char *qw_mediawiki_status_string(QwMediaWikiStatus status);
 
 #ifdef __cplusplus

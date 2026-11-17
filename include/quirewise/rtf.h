@@ -32,12 +32,15 @@ typedef struct QwRtfDocument {
     int saw_footnote;
 } QwRtfDocument;
 
+/*! Return the ABI version compiled into the installed text package. */
 int qw_rtf_abi_version(void);
 
 /* Parse supported RTF into a UTF-8 HTML fragment. Input bytes are borrowed. */
 QwRtfStatus qw_rtf_parse_html(const void *data, size_t size,
                               QwRtfDocument *out_document);
+/*! Release a document returned by the parser; NULL is accepted. */
 void qw_rtf_document_free(QwRtfDocument *document);
+/*! Return a static human-readable name for a status code. */
 const char *qw_rtf_status_string(QwRtfStatus status);
 
 #ifdef __cplusplus

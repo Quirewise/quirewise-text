@@ -27,12 +27,15 @@ typedef struct QwTypstDocument {
     int reduced_math;
 } QwTypstDocument;
 
+/*! Return the ABI version compiled into the installed text package. */
 int qw_typst_abi_version(void);
 
 /* Parse UTF-8 input from the supported Typst markup subset into Markdown. */
 QwTypstStatus qw_typst_parse_markdown(const void *data, size_t size,
                                      QwTypstDocument *out_document);
+/*! Release a document returned by the parser; NULL is accepted. */
 void qw_typst_document_free(QwTypstDocument *document);
+/*! Return a static human-readable name for a status code. */
 const char *qw_typst_status_string(QwTypstStatus status);
 
 #ifdef __cplusplus
