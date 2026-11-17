@@ -680,6 +680,15 @@ QwMarkdownStatus qw_markdown_from_html(const void *html, size_t size,
                 if (!md_blank(&out) || !md_append(&out, "---\n", 4u))
                     goto out_of_memory;
             } else if (md_name_equal((const uint8_t *)tag.name,
+                                     strlen(tag.name), "dl") ||
+                       md_name_equal((const uint8_t *)tag.name,
+                                     strlen(tag.name), "dt")) {
+                if (!md_blank(&out)) goto out_of_memory;
+            } else if (md_name_equal((const uint8_t *)tag.name,
+                                     strlen(tag.name), "dd")) {
+                if (!md_newline(&out) || !md_append(&out, ": ", 2u))
+                    goto out_of_memory;
+            } else if (md_name_equal((const uint8_t *)tag.name,
                                      strlen(tag.name), "br")) {
                 if (!md_newline(&out)) goto out_of_memory;
             } else if (md_name_equal((const uint8_t *)tag.name,
