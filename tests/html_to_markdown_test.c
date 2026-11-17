@@ -68,6 +68,7 @@ int main(void)
            "<th style=\"text-align:right\">B</th></tr>"
            "<tr><td>1</td><td>2</td></tr></table>",
            "| :---: | ---: |");
+    expect("horizontal rule", "<p>a</p><hr><p>b</p>", "---");
     expect("entity", "<p>a &amp; b &lt;3</p>", "a & b <3");
     expect("image alt", "<p><img src=\"x.png\" alt=\"diagram\"></p>",
            "![diagram](x.png)");
