@@ -1,7 +1,7 @@
 # quirewise-text
 
 Readers for plain text, Markdown, RTF, roff man pages and seven lightweight
-markup languages, plus an HTML table extractor.
+markup languages, an HTML table extractor, and an HTML→Markdown writer.
 
 `Quirewise::Text` is an independent, MIT-licensed C11 library. It is installed
 as a CMake package and can be consumed without the Quirewise application or any
@@ -9,10 +9,11 @@ other Quirewise package.
 
 ## What it does
 
-- Renders a supported Markdown subset to an HTML fragment: headings,
-  paragraphs, emphasis/strong, code spans and fenced or indented code, links,
-  blockquotes, ordered/unordered lists, horizontal rules and images (replaced
-  by their alt text).
+- Renders a practical Markdown subset to an HTML fragment: ATX and Setext
+  headings, paragraphs, emphasis/strong/strikethrough, code spans and fenced or
+  indented code, links (with `title`), autolinks, blockquotes, ordered/unordered
+  and task lists, horizontal rules, pipe tables with alignment and escaped `\|`,
+  images (preserved as `<img>` with alt/title), inline `<br>` and block `<hr>`.
 - Parses RTF into a complete HTML document: control words and groups,
   ANSI/Unicode escapes, code pages, bold/italic/underline/strike, font size,
   alignment, page breaks and embedded PNG/JPEG pictures as `data:` URIs.
@@ -25,14 +26,17 @@ other Quirewise package.
   both single-table and multi-table documents.
 - Converts an HTML fragment back to the supported Markdown subset with
   `qw_markdown_from_html`: headings, paragraphs, emphasis, links, lists,
-  blockquotes, inline and fenced code, simple tables, and images reduced to
-  their alt text. `qw_markdown_text_free` releases the result.
+  blockquotes, inline/fenced code, tables with alignment, `<hr>`, definition
+  lists, images with title, `<sup>/<sub>`, `<del>/<s>/<strike>` → `~~…~~`,
+  `<u>/<mark>` and `<q>/<cite>` preserved, and `figure/figcaption` → image plus
+  italic caption. `qw_markdown_text_free` releases the result.
 
 **This package is a reader with one text writer.** The HTML-to-Markdown writer
 is the exception; there is no writer for EPUB, DOCX, HWPX, PDF or any other
 binary document target, and the HTML table extractor is a strict grid parser,
 not a general HTML parser or sanitizer. Markup support is a bounded subset of
-each language, not a full CommonMark, RTF or roff implementation.
+each language, not a full CommonMark, RTF or roff implementation; images are
+preserved as markup but the parser does not fetch remote resources.
 
 ## Requirements
 

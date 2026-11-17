@@ -284,11 +284,16 @@ that cannot collide with `QW_HTML_GRID_OK` when you abort early.
 | Plain text | 256 MiB | none stated |
 | HTML grid | 512 MiB | one cell 256 MiB, name 4 KiB, 256 tables |
 
-- Markdown supports a CommonMark-style subset: ATX headings, paragraphs,
-  emphasis/strong, code spans, fenced and four-space indented code, inline
-  links, images (alt text), blockquotes, ordered/unordered lists and rules. It
-  has no table-block support; nesting deeper than 32 reports
+- Markdown supports a practical subset: ATX and Setext headings, paragraphs,
+  emphasis/strong/strikethrough, code spans, fenced/four-space code, links with
+  titles, autolinks, images (`<img>` with alt/title), blockquotes,
+  ordered/unordered/task lists, rules, pipe tables with alignment and escaped
+  `\|`, inline `<br>` and block `<hr>`. Nesting deeper than 32 reports
   `QW_MARKDOWN_ERR_UNSUPPORTED`.
+- `qw_markdown_from_html` writes the reverse subset: headings, paragraphs,
+  emphasis, links, lists, blockquotes, code, aligned tables, `<hr>`, definition
+  lists, image titles, `<sup>/<sub>`, strikethrough, `<u>/<mark>`,
+  `<q>/<cite>` and `figure/figcaption`. It does not fetch image resources.
 - RTF group nesting beyond 512 levels is rejected as malformed, and input above
   256 MiB reports `QW_RTF_ERR_UNSUPPORTED` rather than a resource limit.
   Headers, footers, footnotes, annotations and OLE objects are suppressed.
