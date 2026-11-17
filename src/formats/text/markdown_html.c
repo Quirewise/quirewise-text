@@ -610,6 +610,15 @@ QwMarkdownStatus qw_markdown_from_html(const void *html, size_t size,
                         link_href_size = 0u;
                     }
                 } else if (md_name_equal((const uint8_t *)tag.name,
+                                         strlen(tag.name), "q") ||
+                           md_name_equal((const uint8_t *)tag.name,
+                                         strlen(tag.name), "cite")) {
+                    const char *close = md_name_equal((const uint8_t *)tag.name,
+                                                      strlen(tag.name), "q")
+                                            ? "</q>" : "</cite>";
+                    if (!md_append(&out, close, strlen(close)))
+                        goto out_of_memory;
+                } else if (md_name_equal((const uint8_t *)tag.name,
                                          strlen(tag.name), "u") ||
                            md_name_equal((const uint8_t *)tag.name,
                                          strlen(tag.name), "mark")) {
@@ -749,6 +758,15 @@ QwMarkdownStatus qw_markdown_from_html(const void *html, size_t size,
                 memcpy(link_href, tag.href, link_href_size);
                 link_href[link_href_size] = '\0';
                 if (!md_byte(&out, '[')) goto out_of_memory;
+            } else if (md_name_equal((const uint8_t *)tag.name,
+                                     strlen(tag.name), "q") ||
+                       md_name_equal((const uint8_t *)tag.name,
+                                     strlen(tag.name), "cite")) {
+                const char *open = md_name_equal((const uint8_t *)tag.name,
+                                                 strlen(tag.name), "q")
+                                           ? "<q>" : "<cite>";
+                if (!md_append(&out, open, strlen(open)))
+                    goto out_of_memory;
             } else if (md_name_equal((const uint8_t *)tag.name,
                                      strlen(tag.name), "u") ||
                        md_name_equal((const uint8_t *)tag.name,
