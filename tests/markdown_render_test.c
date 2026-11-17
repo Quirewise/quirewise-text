@@ -172,6 +172,18 @@ int main(void)
         qw_markdown_document_free(&document);
     }
 
+    {
+        static const char rule[] = "Before\n<hr>\nAfter\n";
+        memset(&document, 0, sizeof(document));
+        CHECK(qw_markdown_render_html(rule, sizeof(rule) - 1u, &document) ==
+              QW_MARKDOWN_OK);
+        CHECK(document.html != NULL);
+        CHECK(strstr(document.html, "<p>Before</p>") != NULL);
+        CHECK(strstr(document.html, "<hr/>") != NULL);
+        CHECK(strstr(document.html, "<p>After</p>") != NULL);
+        qw_markdown_document_free(&document);
+    }
+
     /* Empty input is rejected rather than silently accepted. */
     memset(&document, 0, sizeof(document));
     CHECK(qw_markdown_render_html("", 0u, &document) != QW_MARKDOWN_OK);

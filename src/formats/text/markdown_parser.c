@@ -231,6 +231,8 @@ static int markdown_list_marker(const QwMarkdownLine *line,
     return 1;
 }
 
+static int markdown_hr_line(const QwMarkdownLine *line);
+
 static int markdown_line_starts_block(const QwMarkdownLine *line)
 {
     size_t level, content;
@@ -240,7 +242,8 @@ static int markdown_line_starts_block(const QwMarkdownLine *line)
            markdown_horizontal_rule(line) ||
            markdown_fence(line, &fence) ||
            markdown_blockquote(line, &content) ||
-           markdown_list_marker(line, &marker);
+           markdown_list_marker(line, &marker) ||
+           markdown_hr_line(line);
 }
 
 static int markdown_utf8_valid(const uint8_t *data, size_t size)
@@ -1113,6 +1116,33 @@ static int markdown_setext_underline(const QwMarkdownLine *line,
     return 1;
 }
 
+static int markdown_hr_line(const QwMarkdownLine *line)
+{
+    size_t offset = markdown_leading_spaces(line);
+    size_t end = line->size;
+    if (offset > 3u || offset >= end || line->data[offset] != '<') return 0;
+    while (end > offset &&
+           (line->data[end - 1u] == ' ' || line->data[end - 1u] == '\t'))
+        --end;
+    if (end - offset == 4u &&
+        (line->data[offset + 1u] == 'h' || line->data[offset + 1u] == 'H') &&
+        (line->data[offset + 2u] == 'r' || line->data[offset + 2u] == 'R') &&
+        line->data[offset + 3u] == '>')
+        return 1;
+    if (end - offset == 5u &&
+        (line->data[offset + 1u] == 'h' || line->data[offset + 1u] == 'H') &&
+        (line->data[offset + 2u] == 'r' || line->data[offset + 2u] == 'R') &&
+        line->data[offset + 3u] == '/' && line->data[offset + 4u] == '>')
+        return 1;
+    if (end - offset == 6u &&
+        (line->data[offset + 1u] == 'h' || line->data[offset + 1u] == 'H') &&
+        (line->data[offset + 2u] == 'r' || line->data[offset + 2u] == 'R') &&
+        line->data[offset + 3u] == ' ' && line->data[offset + 4u] == '/' &&
+        line->data[offset + 5u] == '>')
+        return 1;
+    return 0;
+}
+
 static int markdown_render_blocks(const uint8_t *data, size_t size,
                                   QwTextBuffer *html,
                                   size_t *removed_images,
@@ -1386,6 +1416,11 @@ static int markdown_render_blocks(const uint8_t *data, size_t size,
                 if (rc != QW_STATUS_OK) return rc;
                 continue;
             }
+        }
+        if (markdown_hr_line(&line)) {
+            rc = markdown_append_literal(html, "<hr/>\n");
+            if (rc != QW_STATUS_OK) return rc;
+            continue;
         }
         {
             size_t probe = position;
