@@ -566,6 +566,24 @@ static int markdown_inline(const uint8_t *data, size_t size,
             continue;
         }
         if (data[i] == '<') {
+            size_t br_length = 0u;
+            if (i + 3u < size &&
+                (data[i + 1u] == 'b' || data[i + 1u] == 'B') &&
+                (data[i + 2u] == 'r' || data[i + 2u] == 'R')) {
+                if (data[i + 3u] == '>') br_length = 4u;
+                else if (i + 4u < size && data[i + 3u] == '/' &&
+                         data[i + 4u] == '>') br_length = 5u;
+                else if (i + 5u < size && data[i + 3u] == ' ' &&
+                         data[i + 4u] == '/' && data[i + 5u] == '>')
+                    br_length = 6u;
+            }
+            if (br_length) {
+                int rc = markdown_append_literal(html, "<br/>");
+                if (rc != QW_STATUS_OK) return rc;
+                i += br_length;
+                continue;
+            }
+            {
             size_t close = i + 1u;
             while (close < size && data[close] != '>' &&
                    data[close] != ' ' && data[close] != '\t' &&
@@ -593,6 +611,7 @@ static int markdown_inline(const uint8_t *data, size_t size,
                     i = close + 1u;
                     continue;
                 }
+            }
             }
         }
         if (data[i] == '!' || data[i] == '[') {
