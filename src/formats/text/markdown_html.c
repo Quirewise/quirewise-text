@@ -222,6 +222,7 @@ typedef struct MdTag {
     char href[1024];
     char alt[512];
     char src[4096];
+    char title[512];
     char align[16];
     char style[256];
     size_t href_size;
@@ -359,6 +360,11 @@ static size_t md_parse_tag(const uint8_t *data, size_t size, size_t start,
                         index = md_skip_quoted(data, end, index, quote,
                                                tag->src,
                                                sizeof(tag->src));
+                    } else if (attr_size == 5u &&
+                               md_name_equal(data + attr_start, 5u, "title")) {
+                        index = md_skip_quoted(data, end, index, quote,
+                                               tag->title,
+                                               sizeof(tag->title));
                     } else if (attr_size == 5u &&
                                md_name_equal(data + attr_start, 5u,
                                              "align")) {
@@ -818,6 +824,13 @@ QwMarkdownStatus qw_markdown_from_html(const void *html, size_t size,
                                          strlen(tag.alt), 0, quote_depth)) ||
                         !md_append(&out, "](", 2u) ||
                         !md_append(&out, tag.src, strlen(tag.src)) ||
+                        (tag.title[0] &&
+                         (!md_append(&out, " \"", 2u) ||
+                          !md_escape_text(&out,
+                                          (const uint8_t *)tag.title,
+                                          strlen(tag.title), 0,
+                                          quote_depth) ||
+                          !md_append(&out, "\"", 1u))) ||
                         !md_append(&out, ")", 1u))
                         goto out_of_memory;
                 } else {

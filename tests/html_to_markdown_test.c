@@ -76,6 +76,9 @@ int main(void)
            "![diagram](x.png)");
     expect("image data", "<p><img alt=\"shot\" src=\"data:image/png;base64,AA\"></p>",
            "![shot](data:image/png;base64,AA)");
+    expect("image title",
+           "<p><img src=\"x.png\" alt=\"diagram\" title=\"A diagram\"></p>",
+           "![diagram](x.png \"A diagram\")");
     expect("image with width", "<p><img alt=\"diagram\" width=\"64\" src=\"x.png\"></p>",
            "![diagram](x.png)");
     expect("image no src", "<p><img alt=\"orphan\"></p>", "orphan");
