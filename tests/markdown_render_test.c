@@ -137,6 +137,19 @@ int main(void)
         qw_markdown_document_free(&document);
     }
 
+    {
+        static const char titled[] =
+            "[site](https://example.com \"Example\")\n";
+        memset(&document, 0, sizeof(document));
+        CHECK(qw_markdown_render_html(titled, sizeof(titled) - 1u,
+                                      &document) == QW_MARKDOWN_OK);
+        CHECK(document.html != NULL);
+        CHECK(strstr(document.html,
+                     "title=\"Example\"") != NULL);
+        CHECK(strstr(document.html, ">site</a>") != NULL);
+        qw_markdown_document_free(&document);
+    }
+
     /* Empty input is rejected rather than silently accepted. */
     memset(&document, 0, sizeof(document));
     CHECK(qw_markdown_render_html("", 0u, &document) != QW_MARKDOWN_OK);

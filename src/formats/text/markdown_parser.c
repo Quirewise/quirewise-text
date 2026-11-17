@@ -404,6 +404,9 @@ static int markdown_link_parts(const uint8_t *data, size_t size,
                                size_t *out_label_size,
                                size_t *out_url_start,
                                size_t *out_url_size,
+                               int *out_has_title,
+                               size_t *out_title_start,
+                               size_t *out_title_size,
                                size_t *out_end)
 {
     size_t label_start = start + (image ? 2u : 1u);
@@ -411,6 +414,9 @@ static int markdown_link_parts(const uint8_t *data, size_t size,
     size_t position;
     size_t url_start;
     size_t url_end;
+    size_t title_start = 0u;
+    size_t title_end = 0u;
+    int has_title = 0;
     size_t nesting = 0u;
     if (start >= size || (image && start + 1u >= size) ||
         data[start] != (image ? '!' : '[') ||
@@ -464,7 +470,10 @@ static int markdown_link_parts(const uint8_t *data, size_t size,
     if (position < size && data[position] != ')') {
         uint8_t quote = data[position] == '\'' || data[position] == '"'
                             ? data[position] : 0u;
-        if (quote) ++position;
+        if (quote) {
+            ++position;
+            title_start = position;
+        }
         while (position < size &&
                (quote ? data[position] != quote : data[position] != ')')) {
             if (data[position] == '\\' && position + 1u < size)
@@ -474,6 +483,8 @@ static int markdown_link_parts(const uint8_t *data, size_t size,
         }
         if (quote) {
             if (position >= size) return 0;
+            title_end = position;
+            has_title = 1;
             ++position;
         }
         while (position < size &&
@@ -486,6 +497,9 @@ static int markdown_link_parts(const uint8_t *data, size_t size,
     *out_label_size = close_label - label_start;
     *out_url_start = url_start;
     *out_url_size = url_end - url_start;
+    *out_has_title = has_title;
+    *out_title_start = title_start;
+    *out_title_size = has_title ? title_end - title_start : 0u;
     *out_end = position + 1u;
     return 1;
 }
@@ -584,9 +598,12 @@ static int markdown_inline(const uint8_t *data, size_t size,
         if (data[i] == '!' || data[i] == '[') {
             int image = data[i] == '!';
             size_t label_start, label_size, url_start, url_size, token_end;
+            size_t title_start, title_size;
+            int has_title;
             if (markdown_link_parts(data, size, i, image,
                                     &label_start, &label_size,
-                                    &url_start, &url_size, &token_end)) {
+                                    &url_start, &url_size, &has_title,
+                                    &title_start, &title_size, &token_end)) {
                 int safe = markdown_url_safe(data + url_start, url_size);
                 int rc;
                 if (image) {
@@ -597,7 +614,16 @@ static int markdown_inline(const uint8_t *data, size_t size,
                     rc = markdown_escape_html(html, data + url_start,
                                               url_size, 0);
                     if (rc != QW_STATUS_OK) return rc;
-                    rc = markdown_append_literal(html, "\">");
+                    if (has_title) {
+                        rc = markdown_append_literal(html, "\" title=\"");
+                        if (rc != QW_STATUS_OK) return rc;
+                        rc = markdown_escape_html(html, data + title_start,
+                                                  title_size, 0);
+                        if (rc != QW_STATUS_OK) return rc;
+                        rc = markdown_append_literal(html, "\">");
+                    } else {
+                        rc = markdown_append_literal(html, "\">");
+                    }
                     if (rc != QW_STATUS_OK) return rc;
                 }
                 rc = markdown_inline(data + label_start, label_size, html,
