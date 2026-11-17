@@ -71,6 +71,8 @@ int main(void)
     expect("horizontal rule", "<p>a</p><hr><p>b</p>", "---");
     expect("definition list", "<dl><dt>Term</dt><dd>Detail</dd></dl>",
            ": Detail");
+    expect("superscript", "<p>x<sup>2</sup></p>", "<sup>2</sup>");
+    expect("subscript", "<p>H<sub>2</sub>O</p>", "<sub>2</sub>");
     expect("entity", "<p>a &amp; b &lt;3</p>", "a & b <3");
     expect("image alt", "<p><img src=\"x.png\" alt=\"diagram\"></p>",
            "![diagram](x.png)");
